@@ -52,6 +52,18 @@ ABSOLUTE_CLAIM_PATTERN = re.compile(
     re.I,
 )
 
+TREND_CLAIM_PATTERN = re.compile(
+    r"全网最火|最有流量|流量最大|刷屏|暴涨|霸榜|突然爆了|全网都在讨论|"
+    r"大家都在讨论|热度飙升|热度暴涨|现在最火|当下最火",
+    re.I,
+)
+
+TIME_SENSITIVE_CLAIM_PATTERN = re.compile(
+    r"最新|刚刚|今天|昨天|本周|这周|近期|最近|目前|当前|截至|刚发布|刚上线|"
+    r"正式上线|即将上线|下个月|下周",
+    re.I,
+)
+
 SPEECH_TOKEN_PATTERN = re.compile(
     r"[\u3400-\u9fff]|[A-Za-z]+(?:[.-][A-Za-z]+)*|\d+(?:[.,]\d+)*"
 )
@@ -164,12 +176,14 @@ def prefix_by_speech_units(text: str, max_units: int) -> str:
     return re.sub(r"\s+", "", text[:end])
 
 
-def absolute_claims_with_context(text: str) -> list[dict[str, str]]:
+def claims_with_context(
+    text: str, pattern: re.Pattern[str], before: int = 18, after: int = 24
+) -> list[dict[str, str]]:
     compact = re.sub(r"\s+", "", text)
     results: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
-    for match in ABSOLUTE_CLAIM_PATTERN.finditer(compact):
-        context = compact[max(0, match.start() - 18) : match.end() + 24]
+    for match in pattern.finditer(compact):
+        context = compact[max(0, match.start() - before) : match.end() + after]
         key = (match.group(0), context)
         if key in seen:
             continue
@@ -257,7 +271,13 @@ def main() -> int:
         "has_viral_guarantee": bool(guarantee_hits),
         "viral_guarantee_hits": guarantee_hits,
         "numeric_claims_to_audit": numeric_claims,
-        "absolute_claims_to_audit": absolute_claims_with_context(speech),
+        "absolute_claims_to_audit": claims_with_context(
+            speech, ABSOLUTE_CLAIM_PATTERN
+        ),
+        "trend_claims_to_audit": claims_with_context(speech, TREND_CLAIM_PATTERN),
+        "time_sensitive_claims_to_audit": claims_with_context(
+            speech, TIME_SENSITIVE_CLAIM_PATTERN
+        ),
         "jargon_to_review": {
             "all_unique_latin_terms": unique_latin_terms(speech),
             "opening_20pct_unique_latin_terms": unique_latin_terms(

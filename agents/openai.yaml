@@ -1,4 +1,4 @@
 interface:
   display_name: "抖音口播导演"
-  short_description: "把主题与资料重构为高留存、高互动、可直接拍摄的中文口播稿"
-  default_prompt: "使用 $douyin-script-director 把我的主题和资料写成一条有强钩子、明确观点并符合目标时长的抖音口播稿。"
+  short_description: "实时筛选AI选题，并把证据写成高留存、高互动的中文口播稿"
+  default_prompt: "使用 $douyin-script-director 创作抖音口播；如果我没有给主题，先运行AI选题雷达，实时核验资讯、热度信号和截图，再选择最适合受众的题目成稿。"
