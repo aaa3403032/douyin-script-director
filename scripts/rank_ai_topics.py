@@ -49,7 +49,19 @@ WEIGHTS = {
         "teachability": 5,
         "visual_evidence": 3,
     },
+    "technical": {
+        "heat": 1,
+        "audience_relevance": 4,
+        "evidence_strength": 4,
+        "real_world_consequence": 4,
+        "freshness": 2,
+        "conflict_novelty": 1,
+        "teachability": 5,
+        "visual_evidence": 4,
+    },
 }
+
+TRACKS = {"breaking", "rising", "technical"}
 
 HOT_LANGUAGE = re.compile(
     r"全网最火|最有流量|流量最大|刷屏|暴涨|霸榜|爆了|都在讨论|热度飙升|"
@@ -66,7 +78,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         choices=sorted(WEIGHTS),
-        help="Override run.mode (balanced, news, or tutorial)",
+        help="Override run.mode (balanced, news, tutorial, or technical)",
     )
     parser.add_argument("--markdown", help="Optional Markdown output path")
     parser.add_argument("--json", dest="json_output", help="Optional JSON output path")
@@ -147,6 +159,12 @@ def validate_topic(
         if not topic.get(field):
             errors.append(f"{label}: {field} is required")
 
+    track = str(topic.get("track", "")).lower()
+    if not track:
+        warnings.append(f"{label}: track is missing (breaking, rising, or technical)")
+    elif track not in TRACKS:
+        errors.append(f"{label}: track must be breaking, rising, or technical")
+
     grade = str(topic.get("evidence_grade", "")).upper()
     if grade not in {"A", "B", "C", "D"}:
         errors.append(f"{label}: evidence_grade must be A, B, C, or D")
@@ -159,6 +177,31 @@ def validate_topic(
             parse_iso_date(str(event_date), f"{label}.event_date")
         except ValueError as exc:
             errors.append(str(exc))
+
+    if track in {"breaking", "rising"} and not event_date:
+        errors.append(f"{label}: {track} topics require event_date")
+    if track == "rising":
+        latest_signal_at = topic.get("latest_signal_at")
+        if not latest_signal_at:
+            errors.append(f"{label}: rising topics require latest_signal_at")
+        else:
+            try:
+                parse_iso_date(str(latest_signal_at), f"{label}.latest_signal_at")
+            except ValueError as exc:
+                errors.append(str(exc))
+    if track == "technical":
+        version_verified_at = topic.get("version_verified_at")
+        if not version_verified_at:
+            errors.append(f"{label}: technical topics require version_verified_at")
+        else:
+            try:
+                parse_iso_date(
+                    str(version_verified_at), f"{label}.version_verified_at"
+                )
+            except ValueError as exc:
+                errors.append(str(exc))
+        if not topic.get("demo_evidence"):
+            errors.append(f"{label}: technical topics require demo_evidence")
 
     scores = topic.get("scores")
     if not isinstance(scores, dict):
@@ -244,6 +287,7 @@ def build_output(data: dict[str, Any], mode: str) -> dict[str, Any]:
                 {
                     "id": topic_id,
                     "title": topic["title"],
+                    "track": str(topic.get("track", "unclassified")).lower(),
                     "evidence_grade": str(topic["evidence_grade"]).upper(),
                     "opportunity_score": score,
                     "risk_penalty": penalty,
@@ -285,14 +329,14 @@ def render_markdown(output: dict[str, Any]) -> str:
         f"- 受众：{output.get('audience') or '未记录'}",
         "- 分数：内容机会分，不是播放量、爆款概率或平台推荐预测。",
         "",
-        "| 排名 | 选题 | 等级 | 机会分 | 风险扣分 | 允许的热度表述 |",
-        "|---:|---|:---:|---:|---:|---|",
+        "| 排名 | 轨道 | 选题 | 等级 | 机会分 | 风险扣分 | 允许的热度表述 |",
+        "|---:|---|---|:---:|---:|---:|---|",
     ]
     for item in output["ranked_topics"]:
         wording = str(item["allowed_heat_wording"]).replace("|", "\\|")
         title = str(item["title"]).replace("|", "\\|")
         lines.append(
-            f"| {item['rank']} | {title} | {item['evidence_grade']} | "
+            f"| {item['rank']} | {item['track']} | {title} | {item['evidence_grade']} | "
             f"{item['opportunity_score']:.1f} | {item['risk_penalty']:.1f} | {wording} |"
         )
     if output["warnings"]:
