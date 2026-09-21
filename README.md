@@ -9,6 +9,8 @@
 - 区分已核验事实、当事方自报、合理推断和未知信息。
 - 区分产品设计、代码机制、单次演示与普遍效果，避免夸大保证。
 - 用“最新事件、正在升温、技术实战”三轨建立AI候选池，既看主流公司，也主动发现 Jev 这类刚出现的新对象。
+- 默认完成广扫、雪球扩展和缺口复查三轮，用覆盖饱和而不是固定分钟数决定何时停止。
+- 候选榜按达标题数动态交付 Top 5–10，不用低分、D级或重复角度凑数；每张卡含精确时间、三节拍口播内容、分项分、画面和风险边界。
 - 按新闻、均衡、教程或技术模式计算可审计的“内容机会分”，不把它包装成爆款概率。
 - 技术局先验证输入输出，再交付白话原理、三步主路径、失败点、关键边界和当天最小实践。
 - 为热点保存事实账本、原始截图和证据清单，记录平台、地区、时间窗口和抓取时间。
@@ -51,7 +53,7 @@ python3 scripts/audit_oral_script.py draft.txt --target 120
 对完成的 `radar.json` 运行选题排序：
 
 ```bash
-python3 scripts/rank_ai_topics.py radar.json --mode balanced --markdown radar-ranked.md --json radar-ranked.json
+python3 scripts/rank_ai_topics.py radar.json --mode balanced --limit 10 --markdown radar-ranked.md --json radar-ranked.json
 ```
 
 机械检查不能判断创意、事实真伪或真实流量表现。热度指标不能跨平台相加；GitHub Stars或Reddit点赞不能冒充抖音热度。时效事实仍需实时核验，发布结果也会受到选题、账号、画面、表演、剪辑和受众匹配影响。
